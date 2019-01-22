@@ -212,7 +212,6 @@ class PyroDaemon(LoggedEntity):
         :param conf: (Optional) The configuration object
         :param conf_file_path: (Optional) Full path of the configuration file
         :param conf_string: (Optional) Configuration as string
-        :param conf_categories: (Optional) The categories to use
         :return: A configuration object
         """
         if conf is not None:

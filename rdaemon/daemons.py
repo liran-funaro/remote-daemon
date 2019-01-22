@@ -127,7 +127,7 @@ def wrap_as_daemon(obj, daemon_name=None):
     :param daemon_name: The daemon name
     :return: None
     """
-    class_name="%sDaemonWrapper" % obj.__class__.__name__
+    class_name = f"{obj.__class__.__name__}DaemonWrapper"
     new_class = type(class_name, (BaseDaemon, obj.__class__), {})
     implementer(IDaemon)(new_class)
     obj.__class__ = new_class
@@ -191,7 +191,7 @@ class PeriodicDaemon(BaseDaemon):
 
     def calc_next_wait_time(self, last_wakeup):
         """
-        :param last_wakup: The last wakeup timestamp
+        :param last_wakeup: The last wakeup timestamp
         :return: How long to sleep until the next period
         """
         return max(0, self.wakeup_period - (time() - last_wakeup))
@@ -199,7 +199,7 @@ class PeriodicDaemon(BaseDaemon):
     def wait_for_next_period(self, last_wakeup):
         """
         Waits until the next period
-        :param last_wakup: The last wakeup timestamp
+        :param last_wakeup: The last wakeup timestamp
         :return: True if waked up on time,
                  False if waked up due to an interrupt
         """
@@ -310,6 +310,7 @@ class TestSleeperDaemon(BaseDaemon):
 class ThreadingValue:
     def __init__(self, init_val):
         self.value = init_val
+
 
 class DaemonEvent:
     """

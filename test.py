@@ -7,16 +7,16 @@ import threading
 import time
 import unittest
 
-import ginseng.util.daemon.cgroup as daemon_cgroup
-import ginseng.util.daemon.file as daemon_file
-import ginseng.util.daemon.pyro as pyro
-from ginseng.util.daemon.daemons import TestCounterDaemon, TestSleeperDaemon
+import rdaemon.cgroup as daemon_cgroup
+import rdaemon.file as daemon_file
+import rdaemon.pyro as pyro
+from rdaemon.daemons import TestCounterDaemon, TestSleeperDaemon
 from ginseng.util.config import SimplerConfig
 
 from ginseng.util.logging import default_log_conf, LogManager
 
-from ginseng.util.daemon.daemons import PeriodicDaemon, DaemonThread
-from ginseng.util.daemon.tasks import TestPeriodicTask
+from rdaemon.daemons import PeriodicDaemon, DaemonThread
+from rdaemon.tasks import TestPeriodicTask
 
 
 class TestCounter:

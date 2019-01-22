@@ -34,10 +34,9 @@ DEFAULT_DAEMON_CGROUP = "rdaemons"
 
 def default_daemon_cgroup_path(daemon_name, sub_path=""):
     """
-    Default cgroup is daemons/<daemon_name>
+    Default cgroup is rdaemons/<daemon_name>
     :param daemon_name: The daemon name
     :param sub_path: A sub path for a specific group of daemons
-    :param create: Create the cgroup if not exists
     :return: The daemon cgroup path
     """
     return os.path.join(DEFAULT_DAEMON_CGROUP, sub_path, daemon_name)
@@ -49,7 +48,6 @@ def daemon_cgroup_path(daemon_name=None, sub_path="", cgroup_path=None):
     :param daemon_name: The daemon name (if pid_file is None)
     :param sub_path: A sub path for a specific group of daemons
     :param cgroup_path: Can specify the cgroup path directly
-    :param create: Create the cgroup if not exists
     :return: The cgroup path or raise exception if bad parameters
     """
     if cgroup_path is not None:
@@ -75,8 +73,7 @@ def daemon_cgroup(daemon_name=None, sub_path="", cgroup_path=None, create=False)
     try:
         return Cgroup(cgroup_path, create=create)
     except:
-        raise ValueError("The daemon is not active. "
-                         "No cgroup: %s" % cgroup_path)
+        raise ValueError(f"The daemon is not active. No cgroup: {cgroup_path}.")
 
 
 #########################################################################
@@ -93,8 +90,7 @@ def get_daemon_pid(daemon_name=None, sub_path="", cgroup_path=None):
     procs = cgroup.procs
     if len(procs) == 0:
         cgroup.delete(recursive=True)
-        raise ValueError("The daemon is not active. "
-                         "Cgroup path have no tasks: %s" % cgroup.path)
+        raise ValueError(f"The daemon is not active. Cgroup path have no tasks: {cgroup.path}.")
 
     return procs
 
@@ -154,7 +150,6 @@ def clear_empty_sub_path(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP):
     Clear sub path if it is empty
     :param sub_path: See daemon_pid_file()
     :param cgroup_path: The cgroup to lookup daemons
-    :param sig: The signal to send
     :return:
     """
     try:
@@ -190,7 +185,7 @@ def daemonize(daemon_name=None, sub_path="", cgroup_path=None):
 def __del_cgroup(cgroup_path):
     """
     Remove the pid file of a daemon
-    :param pid_file: The pid file to remove
+    :param cgroup_path: The cgroup to remove
     :return: None
     """
     try:
@@ -204,5 +199,3 @@ def __del_cgroup(cgroup_path):
     except OSError as e:
         print("Unable to remove cgroup %s: %d (%s)" % (cgroup_path, e.errno, e.strerror), file=sys.stderr)
         return
-
-

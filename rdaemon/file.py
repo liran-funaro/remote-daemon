@@ -25,7 +25,7 @@ from argparse import ArgumentParser
 import rdaemon.process as daemon_process
 from ginseng.util import shell
 
-DEFAULT_DAEMON_PID_FOLDER = "/tmp/daemons"
+DEFAULT_DAEMON_PID_FOLDER = "/tmp/rdaemons"
 
 
 #########################################################################
@@ -39,7 +39,7 @@ def default_daemon_pid_file(daemon_name, sub_path=""):
     :param sub_path: A sub path for a specific group of daemons
     :return: The default daemon PID file
     """
-    return os.path.join(DEFAULT_DAEMON_PID_FOLDER, sub_path, "%s.pid" % daemon_name)
+    return os.path.join(DEFAULT_DAEMON_PID_FOLDER, sub_path, f"{daemon_name}.pid")
 
 
 def daemon_pid_file(daemon_name=None, sub_path="", pid_file=None):

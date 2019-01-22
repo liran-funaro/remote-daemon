@@ -157,7 +157,7 @@ def __close_all_file_descriptors():
     try:
         import resource
         maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-        if (maxfd == resource.RLIM_INFINITY):
+        if maxfd == resource.RLIM_INFINITY:
             maxfd = MAXFD
     except:
         maxfd = MAXFD
