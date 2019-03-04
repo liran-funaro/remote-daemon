@@ -39,5 +39,5 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    install_requires=['cgroups', 'Pyro4', 'zope'],
+    install_requires=['py-cgroups', 'Pyro4', 'zope', 'simpleconfig'],
 )

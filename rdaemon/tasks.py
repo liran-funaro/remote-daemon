@@ -16,12 +16,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from rdaemon.file import get_daemon_pid
+from rdaemon.bookkeeping.file import get_daemon_pid
 from rdaemon.process import pid_exists
+from rdaemon.logging import LoggedEntity
 from rdaemon.interfaces import IPeriodicTask
 from zope.interface.declarations import implementer
-
-from ginseng.util.logging import LoggedEntity
 
 
 @implementer(IPeriodicTask)
@@ -34,6 +33,7 @@ class IsAlivePeriodicChecker(LoggedEntity):
         self.pid_file = pid_file
         assert pid is not None or pid_file is not None
         self.daemon_is_dead_func = on_dead_daemon_func
+        self.finished = None
 
     def setup(self):
         """ IPeriodicTask interface function """
@@ -81,7 +81,8 @@ class TestPeriodicTask:
         if is_scheduled_wakeup:
             self.counter += 1
 
-    def is_finished(self):
+    @staticmethod
+    def is_finished():
         """ IPeriodicTask interface function """
         return False
 

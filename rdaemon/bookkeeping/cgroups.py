@@ -21,7 +21,7 @@ import os
 import signal
 import sys
 
-from cgroups import Cgroup
+from pycgroups import Cgroup
 
 import rdaemon.process as daemon_process
 
@@ -32,17 +32,19 @@ DEFAULT_DAEMON_CGROUP = "rdaemons"
 # Module PID file API
 #########################################################################
 
-def default_daemon_cgroup_path(daemon_name, sub_path=""):
+def default_daemon_cgroup_path(daemon_name, sub_path=None):
     """
     Default cgroup is rdaemons/<daemon_name>
     :param daemon_name: The daemon name
     :param sub_path: A sub path for a specific group of daemons
     :return: The daemon cgroup path
     """
+    if sub_path is None:
+        sub_path = ""
     return os.path.join(DEFAULT_DAEMON_CGROUP, sub_path, daemon_name)
 
 
-def daemon_cgroup_path(daemon_name=None, sub_path="", cgroup_path=None):
+def daemon_cgroup_path(daemon_name=None, sub_path=None, cgroup_path=None):
     """
     Retrieve the daemon cgroup path
     :param daemon_name: The daemon name (if pid_file is None)
@@ -60,7 +62,7 @@ def daemon_cgroup_path(daemon_name=None, sub_path="", cgroup_path=None):
         return default_daemon_cgroup_path(daemon_name, sub_path)
 
 
-def daemon_cgroup(daemon_name=None, sub_path="", cgroup_path=None, create=False):
+def daemon_cgroup(daemon_name=None, sub_path=None, cgroup_path=None, create=False):
     """
     Retrieve the daemon cgroup object
     :param daemon_name: The daemon name (if pid_file is None)
@@ -80,10 +82,12 @@ def daemon_cgroup(daemon_name=None, sub_path="", cgroup_path=None, create=False)
 # Module interface API
 #########################################################################
 
-def get_daemon_pid(daemon_name=None, sub_path="", cgroup_path=None):
+def get_daemon_pid(daemon_name=None, sub_path=None, cgroup_path=None):
     """
     Read the daemon PIDs
-    :param daemon_name, sub_path, cgroup_path: See daemon_cgroup_path()
+    :param daemon_name:
+    :param sub_path:
+    :param cgroup_path: See daemon_cgroup_path()
     :return: The PIDs as a list of integers or raise error
     """
     cgroup = daemon_cgroup(daemon_name=daemon_name, sub_path=sub_path, cgroup_path=cgroup_path, create=False)
@@ -95,10 +99,13 @@ def get_daemon_pid(daemon_name=None, sub_path="", cgroup_path=None):
     return procs
 
 
-def kill_daemon(daemon_name=None, sub_path="", cgroup_path=None, sig=signal.SIGTERM):
+def kill_daemon(daemon_name=None, sub_path=None, cgroup_path=None, sig=signal.SIGTERM):
     """
     Kill a daemon by fetching the PID from the cgroup
-    :param daemon_name, sub_path, cgroup_path: See daemon_cgroup_path()
+    :param daemon_name:
+    :param sub_path:
+    :param cgroup_path: See daemon_cgroup_path()
+    :param sig:
     :return: True if successful
     """
     try:
@@ -114,10 +121,12 @@ def kill_daemon(daemon_name=None, sub_path="", cgroup_path=None, sig=signal.SIGT
     return True
 
 
-def is_daemon_running(daemon_name=None, sub_path="", cgroup_path=None):
+def is_daemon_running(daemon_name=None, sub_path=None, cgroup_path=None):
     """
     Check if a daemon is running
-    :param daemon_name, sub_path, cgroup_path: See daemon_cgroup_path()
+    :param daemon_name:
+    :param sub_path:
+    :param cgroup_path: See daemon_cgroup_path()
     :return: True if it is running
     """
     try:
@@ -128,7 +137,7 @@ def is_daemon_running(daemon_name=None, sub_path="", cgroup_path=None):
     return len(pids) > 0
 
 
-def kill_all_daemons(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP, sig=signal.SIGTERM):
+def kill_all_daemons(sub_path=None, cgroup_path=DEFAULT_DAEMON_CGROUP, sig=signal.SIGTERM):
     """
     Kills all the daemons
     :param sub_path: See daemon_pid_file()
@@ -136,6 +145,8 @@ def kill_all_daemons(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP, sig=signal.
     :param sig: The signal to send
     :return: None
     """
+    if sub_path is None:
+        sub_path = ""
     cgroup = Cgroup(cgroup_path, sub_path, create=False)
 
     pids = cgroup.hierarchy_procs()
@@ -145,7 +156,7 @@ def kill_all_daemons(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP, sig=signal.
         cgroup.delete(recursive=True)
 
 
-def clear_empty_sub_path(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP):
+def clear_empty_sub_path(sub_path=None, cgroup_path=DEFAULT_DAEMON_CGROUP):
     """
     Clear sub path if it is empty
     :param sub_path: See daemon_pid_file()
@@ -160,11 +171,13 @@ def clear_empty_sub_path(sub_path="", cgroup_path=DEFAULT_DAEMON_CGROUP):
         pass
 
 
-def daemonize(daemon_name=None, sub_path="", cgroup_path=None):
+def daemonize(daemon_name=None, sub_path=None, cgroup_path=None):
     """
     Convert current process to a background daemon.
     The daemon can be tracked using the specified cgroup.
-    :param daemon_name, sub_path, cgroup_path: See daemon_cgroup_path()
+    :param daemon_name:
+    :param sub_path:
+    :param cgroup_path: See daemon_cgroup_path()
     :return: None. Will exit if fail.
     """
     cgroup = daemon_cgroup(daemon_name=daemon_name, sub_path=sub_path,

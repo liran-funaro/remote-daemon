@@ -1,5 +1,5 @@
 """
-Author: Liran Funaro <funaro@cs.technion.ac.il>
+Author: Liran Funaro <liran.funaro@gmail.com>
 
 Copyright (C) 2006-2018 Liran Funaro
 
@@ -24,15 +24,15 @@ import time
 from threading import Thread
 
 import Pyro4
-import rdaemon.cgroup as daemon_cgroup
-import rdaemon.file as daemon_file
+import Pyro4.naming
+import rdaemon.bookkeeping.cgroups as daemon_cgroup
+import rdaemon.bookkeeping.file as daemon_file
 from rdaemon.daemons import wrap_as_daemon, DaemonThread
 from rdaemon.interfaces import IDaemon
 from rdaemon.launch import launch_daemon
-from ginseng.util.config import SimplerConfig
+from rdaemon.logging import LoggedEntity, read_logging_configuration
+from simpleconfig import SimplerConfig
 from zope.interface.declarations import implementer
-
-from ginseng.util.logging import LoggedEntity, read_logging_configuration
 
 
 def launch_pyro_daemon(name, conf=None, log_conf=None,
@@ -231,6 +231,8 @@ class PyroDaemon(LoggedEntity):
         """
         Create the daemon object using a configuration
         :param conf: The configuration
+        :param conf_file_path: (Optional) Full path of the configuration file
+        :param conf_string: (Optional) Configuration as string
         :param conf_sub_path: A sub-path of the configuration
         :return: A daemon object, or raise exception
         """
@@ -282,7 +284,7 @@ class PyroDaemon(LoggedEntity):
         self.pyro_daemon.requestLoop()
         self.log_info("Daemon %s pyro server is terminated", self.name)
 
-    def sigterm_handler(self, signal_number, current_stack_frame):
+    def sigterm_handler(self, _signal_number, _current_stack_frame):
         """
         Handle SIGTERM event.
         Will shutdown the daemon request loop if running.
@@ -339,11 +341,11 @@ class PyroDaemonProcess(multiprocessing.Process):
 
     def __init__(self, name, conf=None, conf_file_path=None, conf_string=None, conf_sub_path=None):
         multiprocessing.Process.__init__(self, name=name, target=PyroDaemon.run_pyro_daemon,
+                                         daemon=True,
                                          kwargs=dict(
                                              name=name, conf=conf, conf_file_path=conf_file_path,
                                              conf_string=conf_string, conf_sub_path=conf_sub_path
                                          ))
-        self.daemon=True
 
 
 class PyroDaemonsDeployment(LoggedEntity):
@@ -409,8 +411,6 @@ class PyroDaemonsDeployment(LoggedEntity):
     def terminate_all(self):
         """
         Terminate all the active daemons
-        :param join_timeout: Time to wait for the daemon to end
-        :return: None
         """
         for name in list(self.active_daemons):
             self.terminate_daemon(name)
@@ -444,7 +444,7 @@ class PyroDaemonsDeployment(LoggedEntity):
         :return: A dict - for each daemons: is running
         """
         self.clear_dead_daemons()
-        return {d:(d in self.active_daemons) for d in self.deploy_daemons}
+        return {d: (d in self.active_daemons) for d in self.deploy_daemons}
 
     def join(self, timeout=None, check_interval=1):
         """
@@ -460,9 +460,11 @@ class PyroDaemonsDeployment(LoggedEntity):
 
         return False
 
+
 ###################################################################################
 # Pyro name-server
 ###################################################################################
+
 
 def name_server_lookup(wait_timeout_sec=0):
     """
@@ -491,7 +493,7 @@ def is_name_server_alive(wait_timeout_sec=0):
     """
     try:
         name_server_lookup(wait_timeout_sec)
-    except:
+    except Exception:
         return False
     return True
 
@@ -523,6 +525,25 @@ def name_server_stop():
     return daemon_file.kill_daemon(daemon_name='pyro-name-server', sig=signal.SIGTERM)
 
 
+def locate_daemon_uri(daemon_name, wait_timeout_sec=0):
+    """
+    :param daemon_name: The daemon name
+    :param wait_timeout_sec: Time to wait for the name-server
+    :return: The URI of the daemon if it is registered
+    """
+    with name_server_lookup(wait_timeout_sec) as ns:
+        return ns.lookup(daemon_name)
+
+
+def list_daemons(wait_timeout_sec=0):
+    """
+    :param wait_timeout_sec: Time to wait for the name-server
+    :return: The registered items as a dictionary name-to-URI
+    """
+    with name_server_lookup(wait_timeout_sec) as ns:
+        return ns.list()
+
+
 ###################################################################################
 # Service manager for Pyro
 ###################################################################################
@@ -541,15 +562,6 @@ class PyroServices(LoggedEntity):
     # Interface
     #################################################################
 
-    def locate_daemon_uri(self, daemon_name, wait_timeout_sec=0):
-        """
-        :param daemon_name: The daemon name
-        :param wait_timeout_sec: Time to wait for the name-server
-        :return: The URI of the daemon if it is registered
-        """
-        with name_server_lookup(wait_timeout_sec) as ns:
-            return ns.lookup(daemon_name)
-
     def daemon_uri(self, daemon_name, wait_timeout_sec=0):
         """
         Get the daemon URI from cache or check name-server if not read before
@@ -558,7 +570,7 @@ class PyroServices(LoggedEntity):
         :return: The URI of the daemon if it is registered
         """
         if daemon_name not in self.__daemon_uri:
-            self.__daemon_uri[daemon_name] = self.locate_daemon_uri(daemon_name, wait_timeout_sec)
+            self.__daemon_uri[daemon_name] = locate_daemon_uri(daemon_name, wait_timeout_sec)
         return self.__daemon_uri[daemon_name]
 
     def create_daemon_object(self, daemon_name, wait_timeout_sec=0):
@@ -602,15 +614,8 @@ class PyroServices(LoggedEntity):
         :return: A thread local object of the daemon
         """
         proxy = self.daemon(daemon_name, wait_timeout_sec)
-        return Pyro4.async(proxy)
-
-    def list_daemons(self, wait_timeout_sec=0):
-        """
-        :param wait_timeout_sec: Time to wait for the name-server
-        :return: The registered items as a dictionary name-to-URI
-        """
-        with name_server_lookup(wait_timeout_sec) as ns:
-            return ns.list()
+        Pyro4.asyncproxy(proxy)
+        return proxy
 
     def __getitem__(self, item):
         return self.daemon(item)

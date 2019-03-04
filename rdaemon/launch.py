@@ -20,14 +20,12 @@ import logging
 import multiprocessing
 import sys
 
-from rdaemon.cgroup import daemonize as daemonize_cgroup
-from rdaemon.file import daemonize as daemonize_file
-
-from ginseng.util.logging import LogManager, StreamToLogger
+from rdaemon.bookkeeping import daemonize, assert_valid_bookkeeping
+from rdaemon.logging import LogManager, StreamToLogger
 
 
-def launch_daemon(name, target, args=tuple(), kwargs={}, daemon_group="", launcher_timeout=60,
-                  log_conf={}, daemon_bookkeeping='file'):
+def launch_daemon(name, target, args=(), kwargs=None, daemon_group=None, launcher_timeout=60,
+                  log_conf=None, daemon_bookkeeping=None):
     """
     Spawn a new python process that launch a daemon
     Will spawn a new process with nothing in common with the calling process.
@@ -40,13 +38,17 @@ def launch_daemon(name, target, args=tuple(), kwargs={}, daemon_group="", launch
     :param log_conf: Log parameters. See LogManager.init_logger()
     :param daemon_bookkeeping: What bookkeeping method to use (file or cgroup)
     """
-    assert daemon_bookkeeping in ['file', 'cgroup']
+    assert_valid_bookkeeping(daemon_bookkeeping)
+    if log_conf is None:
+        log_conf = {}
+    if kwargs is None:
+        kwargs = {}
 
     ctx = multiprocessing.get_context('spawn')
     process = ctx.Process(name="daemon-launcher-%s" % name,
-                               target=_run_daemon_,
-                               args=(name, target, args, kwargs, daemon_group,
-                                     log_conf, daemon_bookkeeping))
+                          target=_run_daemon_,
+                          args=(name, target, args, kwargs, daemon_group,
+                                log_conf, daemon_bookkeeping))
 
     process.start()
     process.join(timeout=launcher_timeout)
@@ -56,19 +58,16 @@ def _run_daemon_(name, target, args, kwargs, daemon_group, log_conf, daemon_book
     """
     The target function of the new process.
     """
-    if daemon_bookkeeping == 'file':
-        daemonize_file(daemon_name=name, sub_path=daemon_group)
-    elif daemon_bookkeeping == 'cgroup':
-        daemonize_cgroup(daemon_name=name, sub_path=daemon_group)
+    daemonize(daemon_name=name, sub_path=daemon_group, bookkeeping_method=daemon_bookkeeping)
 
     try:
-        LogManager.init_logger(name, stdio=False, file=True, **log_conf)
+        LogManager.init_logger(name, **log_conf)
     except Exception as e:
         print("Failed to initiate logger for daemon:", e, file=sys.stderr)
         exit(1)
 
-    sys.stdout = StreamToLogger(logging.INFO)
-    sys.stderr = StreamToLogger(logging.ERROR)
+    sys.stdout = StreamToLogger('stdout', logging.INFO)
+    sys.stderr = StreamToLogger('stderr', logging.ERROR)
 
     try:
         target(*args, **kwargs)
@@ -76,10 +75,10 @@ def _run_daemon_(name, target, args, kwargs, daemon_group, log_conf, daemon_book
         print("Daemon exited with an error:", e, file=sys.stderr)
         exit(1)
 
-    # try:
-    #     LogManager.stop_logger(stdio=True, file=True)
-    # except Exception as e:
-    #     print("Failed to stop logger for daemon:", e, file=sys.stderr)
-    #     exit(1)
+    try:
+        LogManager.stop_logging()
+    except Exception as e:
+        print("Failed to stop logger for daemon:", e, file=sys.stderr)
+        exit(1)
 
     exit(0)

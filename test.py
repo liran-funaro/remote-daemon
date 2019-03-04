@@ -7,13 +7,13 @@ import threading
 import time
 import unittest
 
-import rdaemon.cgroup as daemon_cgroup
-import rdaemon.file as daemon_file
+import rdaemon.bookkeeping.cgroups as daemon_cgroup
+import rdaemon.bookkeeping.file as daemon_file
 import rdaemon.pyro as pyro
 from rdaemon.daemons import TestCounterDaemon, TestSleeperDaemon
-from ginseng.util.config import SimplerConfig
+from simpleconfig import SimplerConfig
 
-from ginseng.util.logging import default_log_conf, LogManager
+from rdaemon.logging import default_log_conf, LogManager
 
 from rdaemon.daemons import PeriodicDaemon, DaemonThread
 from rdaemon.tasks import TestPeriodicTask
@@ -45,8 +45,7 @@ class TestPyroDaemon(unittest.TestCase):
         log_conf = default_log_conf()
         log_conf['output_path'] = TEST_OUTPUT_PATH
         pyro.name_server_start(log_conf=log_conf)
-        LogManager.init_logger("unit-test", stdio=True, file=False,
-                               **log_conf)
+        LogManager.init_logger("unit-test", **log_conf)
 
     def tearDown(self):
         pyro.name_server_stop()
@@ -63,18 +62,18 @@ class TestPyroDaemon(unittest.TestCase):
         conf.globals.logging.backups_count = 0
         return conf
 
-    def assertDaemonCleanup(self, daemon_name, daemon_group=""):
-        pid_file = daemon_file.daemon_pid_file(daemon_name=daemon_name,
-                                                     sub_path=daemon_group)
-        self.assertFalse(os.path.exists(pid_file))
-
-        cgroup = daemon_cgroup.daemon_cgroup(daemon_name=daemon_name,
+    def assertDaemonCleanup(self, daemon_name, daemon_group="", daemon_bookkeeping='file'):
+        if daemon_bookkeeping == 'file':
+            pid_file = daemon_file.daemon_pid_file(daemon_name=daemon_name,
                                                    sub_path=daemon_group)
-        self.assertTupleEqual(cgroup.subsystems, tuple())
+            self.assertFalse(os.path.exists(pid_file))
+        elif daemon_bookkeeping == 'cgroups':
+            cgroup = daemon_cgroup.daemon_cgroup(daemon_name=daemon_name,
+                                                 sub_path=daemon_group)
+            self.assertTupleEqual(cgroup.subsystems, tuple())
 
     def test_naming_exists(self):
-        services = pyro.PyroServices()
-        ret = services.list_daemons()
+        ret = pyro.list_daemons()
         self.assertTrue('Pyro.NameServer' in ret)
 
     def test_register_daemon_manual_terminate_thread(self):
@@ -83,7 +82,7 @@ class TestPyroDaemon(unittest.TestCase):
         conf_string = conf.dumps()
 
         counter = pyro.PyroDaemonProcess("test.counter",
-                                        conf_string=conf_string, conf_sub_path=["daemon"])
+                                         conf_string=conf_string, conf_sub_path=["daemon"])
         counter.start()
 
         expected_counts = 127
@@ -114,7 +113,7 @@ class TestPyroDaemon(unittest.TestCase):
         conf_string = conf.dumps()
 
         counter = pyro.PyroDaemonProcess("test.counter",
-                                        conf_string=conf_string, conf_sub_path=["daemon"])
+                                         conf_string=conf_string, conf_sub_path=["daemon"])
         counter.start()
 
         expected_counts = 127
@@ -201,7 +200,7 @@ class TestPyroDaemon(unittest.TestCase):
         self.base_deployment('file')
 
     def test_deployment_cgroup(self):
-        self.base_deployment('cgroup')
+        self.base_deployment('cgroups')
 
     def base_deployment(self, daemon_bookkeeping):
         daemon_group = "system"
@@ -244,9 +243,9 @@ class TestPyroDaemon(unittest.TestCase):
             deploy.terminate_all()
             deploy.join()
 
-        self.assertDaemonCleanup("test.counter1", daemon_group=daemon_group)
-        self.assertDaemonCleanup("test.counter2", daemon_group=daemon_group)
-        self.assertDaemonCleanup("", daemon_group=daemon_group)
+        self.assertDaemonCleanup("test.counter1", daemon_group=daemon_group, daemon_bookkeeping=daemon_bookkeeping)
+        self.assertDaemonCleanup("test.counter2", daemon_group=daemon_group, daemon_bookkeeping=daemon_bookkeeping)
+        self.assertDaemonCleanup("", daemon_group=daemon_group, daemon_bookkeeping=daemon_bookkeeping)
 
     def test_daemon_process_conf(self):
         conf = self.get_base_config()
@@ -307,7 +306,7 @@ class TestPyroDaemon(unittest.TestCase):
             t1 = time.time()
             sleeper.join()
             t2 = time.time()
-            self.assertGreaterEqual(t2-t1, 4)
+            self.assertGreaterEqual(t2 - t1, 4)
             self.assertTrue(sleeper.is_terminated())
             self.assertFalse(sleeper.is_pyro_thread_alive())
             self.assertFalse(sleeper.is_alive())
@@ -328,7 +327,7 @@ class TestPyroDaemon(unittest.TestCase):
             counter_proxy = services.async_daemon("test.counter", 3)
             future = counter_proxy.long_operation(compute_time, compute_result)
             self.assertEqual(future.ready, False)
-            finish = future.wait(compute_time+1)
+            finish = future.wait(compute_time + 1)
             self.assertTrue(finish)
             self.assertEqual(future.value, compute_result)
         finally:
@@ -370,5 +369,5 @@ class UnitTestPeriodicTask(unittest.TestCase):
         time.sleep(expected_count)
         daemon_thread.terminate()
         count = task.get_count()
-        self.assertGreaterEqual(count, expected_count-1)
-        self.assertLessEqual(count, expected_count+1)
+        self.assertGreaterEqual(count, expected_count - 1)
+        self.assertLessEqual(count, expected_count + 1)

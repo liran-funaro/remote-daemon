@@ -23,7 +23,6 @@ import sys
 from argparse import ArgumentParser
 
 import rdaemon.process as daemon_process
-from ginseng.util import shell
 
 DEFAULT_DAEMON_PID_FOLDER = "/tmp/rdaemons"
 
@@ -32,17 +31,19 @@ DEFAULT_DAEMON_PID_FOLDER = "/tmp/rdaemons"
 # Module PID file API
 #########################################################################
 
-def default_daemon_pid_file(daemon_name, sub_path=""):
+def default_daemon_pid_file(daemon_name, sub_path=None):
     """
     Default PID file is /tmp/daemons/<daemon_name>.pid
     :param daemon_name: The daemon name
     :param sub_path: A sub path for a specific group of daemons
     :return: The default daemon PID file
     """
+    if sub_path is None:
+        sub_path = ""
     return os.path.join(DEFAULT_DAEMON_PID_FOLDER, sub_path, f"{daemon_name}.pid")
 
 
-def daemon_pid_file(daemon_name=None, sub_path="", pid_file=None):
+def daemon_pid_file(daemon_name=None, sub_path=None, pid_file=None):
     """
     Retrieve the daemon PID file
     :param daemon_name: The daemon name (if pid_file is None)
@@ -64,10 +65,12 @@ def daemon_pid_file(daemon_name=None, sub_path="", pid_file=None):
 # Module interface API
 #########################################################################
 
-def get_daemon_pid(daemon_name=None, sub_path="", pid_file=None):
+def get_daemon_pid(daemon_name=None, sub_path=None, pid_file=None):
     """
     Read the daemon PID from a file
-    :param daemon_name, sub_path, pid_file: See daemon_pid_file()
+    :param daemon_name:
+    :param sub_path:
+    :param pid_file: See daemon_pid_file()
     :return: The PID as integer or raise error
     """
     pid_file = daemon_pid_file(daemon_name=daemon_name, sub_path=sub_path, pid_file=pid_file)
@@ -77,14 +80,16 @@ def get_daemon_pid(daemon_name=None, sub_path="", pid_file=None):
             pid_data = fp.read()
         return int(pid_data)
     except:
-        raise ValueError("The daemon is not active. "
-                         "No pid file named: %s" % pid_file)
+        raise ValueError(f"The daemon is not active. "
+                         f"No pid file named: f{pid_file}")
 
 
-def kill_daemon(daemon_name=None, sub_path="", pid_file=None, sig=signal.SIGTERM):
+def kill_daemon(daemon_name=None, sub_path=None, pid_file=None, sig=signal.SIGTERM):
     """
     Kill a daemon by fetching the PID from the file
-    :param daemon_name, sub_path, pid_file: See daemon_pid_file()
+    :param daemon_name:
+    :param sub_path:
+    :param pid_file: See daemon_pid_file()
     :return: True if successful
     """
     pid_file = daemon_pid_file(daemon_name=daemon_name, sub_path=sub_path, pid_file=pid_file)
@@ -98,10 +103,12 @@ def kill_daemon(daemon_name=None, sub_path="", pid_file=None, sig=signal.SIGTERM
     return success
 
 
-def is_daemon_running(daemon_name=None, sub_path="", pid_file=None):
+def is_daemon_running(daemon_name=None, sub_path=None, pid_file=None):
     """
     Check if a daemon is running
-    :param daemon_name, sub_path, pid_file: See daemon_pid_file()
+    :param daemon_name:
+    :param sub_path:
+    :param pid_file: See daemon_pid_file()
     :return: True if it is running
     """
     pid_file = daemon_pid_file(daemon_name=daemon_name, sub_path=sub_path, pid_file=pid_file)
@@ -118,7 +125,7 @@ def is_daemon_running(daemon_name=None, sub_path="", pid_file=None):
     return exists
 
 
-def kill_all_daemons(sub_path="", pid_path=DEFAULT_DAEMON_PID_FOLDER, sig=signal.SIGTERM):
+def kill_all_daemons(sub_path=None, pid_path=DEFAULT_DAEMON_PID_FOLDER, sig=signal.SIGTERM):
     """
     Kills all the daemons
     :param sub_path: See daemon_pid_file()
@@ -126,6 +133,8 @@ def kill_all_daemons(sub_path="", pid_path=DEFAULT_DAEMON_PID_FOLDER, sig=signal
     :param sig: The signal to send
     :return: None
     """
+    if sub_path is None:
+        sub_path = ""
     folder = os.path.join(pid_path, sub_path)
     try:
         pid_path_list = [os.path.join(folder, f) for f in os.listdir(folder)]
@@ -140,13 +149,15 @@ def kill_all_daemons(sub_path="", pid_path=DEFAULT_DAEMON_PID_FOLDER, sig=signal
                 pass
 
 
-def clear_empty_sub_path(sub_path="", pid_path=DEFAULT_DAEMON_PID_FOLDER):
+def clear_empty_sub_path(sub_path=None, pid_path=DEFAULT_DAEMON_PID_FOLDER):
     """
     Clear sub path if it is empty
     :param sub_path: See daemon_pid_file()
     :param pid_path: The folder to lookup pid files
     :return:
     """
+    if sub_path is None:
+        sub_path = ""
     folder = os.path.join(pid_path, sub_path)
     try:
         os.removedirs(folder)
@@ -154,11 +165,13 @@ def clear_empty_sub_path(sub_path="", pid_path=DEFAULT_DAEMON_PID_FOLDER):
         pass
 
 
-def daemonize(daemon_name=None, sub_path="", pid_file=None):
+def daemonize(daemon_name=None, sub_path=None, pid_file=None):
     """
     Convert current process to a background daemon.
     The daemon can be tracked using the specified pid file.
-    :param daemon_name, sub_path, pid_file: See daemon_pid_file()
+    :param daemon_name:
+    :param sub_path:
+    :param pid_file: See daemon_pid_file()
     :return: None. Will exit if fail.
     """
     pid_file = daemon_pid_file(daemon_name=daemon_name, sub_path=sub_path, pid_file=pid_file)
@@ -208,7 +221,7 @@ def __delpid(pid_file):
 # Main
 ###########################################################################
 
-if __name__ == "__main__":
+def main():
     description = "A runnable application to start/end a daemon and read it's output"
     params = dict(pid_file="/tmp/%(daemon_local_name)s.pid",
                   output_file="/tmp/%(daemon_local_name)s.out",
@@ -256,7 +269,7 @@ if __name__ == "__main__":
         except:
             pass
 
-        shell.run_shell(execute_cmd % params)
+        os.subprocess.run(execute_cmd % params, shell=True)
 
     if args.get_output is True:
         print(output_file)
@@ -266,3 +279,7 @@ if __name__ == "__main__":
 
     if args.is_running is True:
         print(is_daemon_running(daemon_name, pid_file))
+
+
+if __name__ == "__main__":
+    main()

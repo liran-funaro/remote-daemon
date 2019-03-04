@@ -31,7 +31,7 @@ class FlaskAppDaemon(BaseDaemon):
     """
 
     def __init__(self, app, host, port, debug=False, **options):
-        BaseDaemon.__init__(self)
+        super().__init__()
         self.app = app
         self.host = host
         self.port = port

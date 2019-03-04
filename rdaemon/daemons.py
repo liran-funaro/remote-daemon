@@ -22,10 +22,9 @@ import threading
 from time import time, sleep
 
 from rdaemon.interfaces import IDaemon, IPeriodicTask
+from rdaemon.logging import LoggedEntity
 from zope.interface.declarations import implementer
 from zope.interface.verify import verifyObject
-
-from ginseng.util.logging import LoggedEntity
 
 
 @implementer(IDaemon)
@@ -37,8 +36,8 @@ class DaemonThread(threading.Thread):
     def __init__(self, daemon_object):
         verifyObject(IDaemon, daemon_object)
         threading.Thread.__init__(self,
-                        name=daemon_object.__class__.__name__,
-                        daemon=True)
+                                  name=daemon_object.__class__.__name__,
+                                  daemon=True)
         self.daemon_object = daemon_object
 
         # Assert that the daemon is terminated on exit

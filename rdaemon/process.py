@@ -16,12 +16,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import errno
+import re
 import os
-import signal
 import sys
+import errno
+import signal
 
-from ginseng.util.parse import KeyValueParser
 
 UMASK = 0
 
@@ -34,8 +34,11 @@ MAXFD = 1024
 # The standard I/O file descriptors are redirected to /dev/null by default.
 try:
     REDIRECT_TO = os.devnull
-except:
+except AttributeError:
     REDIRECT_TO = "/dev/null"
+
+
+TGID_REGEXP = re.compile(r"^tgid[ \t\f\v]*:[ \t\f\v]*(\d+)\s*$", re.MULTILINE | re.IGNORECASE)
 
 
 class NullDevice:
@@ -71,11 +74,15 @@ def kill_multiple_process(pids, sig=signal.SIGTERM):
     # subprocess.run(cmd)
     group_pids = set()
     for p in pids:
-        with open("/proc/%s/status" % p, "r") as f:
+        with open(f"/proc/{p}/status", "r") as f:
             data = f.read()
 
-        tgid = KeyValueParser().parse(data)['Tgid']
-        group_pids.add(tgid)
+        m = TGID_REGEXP.search(data)
+        if m is None:
+            tgid = p
+        else:
+            tgid = m.group(1)
+        group_pids.add(int(tgid))
 
     for p in group_pids:
         kill_process(p, sig)
