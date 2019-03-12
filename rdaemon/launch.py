@@ -1,5 +1,5 @@
 """
-Author: Liran Funaro <funaro@cs.technion.ac.il>
+Author: Liran Funaro <liran.funaro@gmail.com>
 
 Copyright (C) 2006-2018 Liran Funaro
 
@@ -55,9 +55,7 @@ def launch_daemon(name, target, args=(), kwargs=None, daemon_group=None, launche
 
 
 def _run_daemon_(name, target, args, kwargs, daemon_group, log_conf, daemon_bookkeeping):
-    """
-    The target function of the new process.
-    """
+    """ The target function of the new process. """
     daemonize(daemon_name=name, sub_path=daemon_group, bookkeeping_method=daemon_bookkeeping)
 
     try:

@@ -1,5 +1,5 @@
 """
-Author: Liran Funaro <funaro@cs.technion.ac.il>
+Author: Liran Funaro <liran.funaro@gmail.com>
 
 Copyright (C) 2006-2018 Liran Funaro
 
@@ -24,14 +24,13 @@ setup(
     py_modules=['rdaemon'],
     description="Remote daemon",
     author="Liran Funaro",
-    author_email="fonaro+rdaemon@gmail.com",
+    author_email="liran.funaro+rdaemon@gmail.com",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url="https://bitbucket.org/fonaro/py-cgroups",
+    url="https://bitbucket.org/funaro/rdaemon",
     keywords='remote daemon',
     license='GPL',
     classifiers=[
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

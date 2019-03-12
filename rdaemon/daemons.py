@@ -1,5 +1,5 @@
 """
-Author: Liran Funaro <funaro@cs.technion.ac.il>
+Author: Liran Funaro <liran.funaro@gmail.com>
 
 Copyright (C) 2006-2018 Liran Funaro
 
@@ -34,7 +34,7 @@ class DaemonThread(threading.Thread):
     """
 
     def __init__(self, daemon_object):
-        verifyObject(IDaemon, daemon_object)
+        verifyObject(IDaemon, daemon_object, tentative=True)
         threading.Thread.__init__(self,
                                   name=daemon_object.__class__.__name__,
                                   daemon=True)
@@ -141,7 +141,7 @@ class PeriodicDaemon(BaseDaemon):
     """
 
     def __init__(self, task, wakeup_period, name=None):
-        verifyObject(IPeriodicTask, task)
+        verifyObject(IPeriodicTask, task, tentative=True)
         if name is None:
             name = task.__class__.__name__
         BaseDaemon.__init__(self, name=name)

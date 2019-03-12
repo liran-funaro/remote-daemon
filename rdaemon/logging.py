@@ -1,7 +1,7 @@
 """
 Useful utilities for logging
 
-Author: Liran Funaro <funaro@cs.technion.ac.il>
+Author: Liran Funaro <liran.funaro@gmail.com>
 
 Copyright (C) 2006-2018 Liran Funaro
 
@@ -22,7 +22,7 @@ import os
 import logging
 import logging.handlers
 from threading import RLock
-from typing import NewType, IO
+from typing import IO
 
 
 class LoggedEntity(object):
@@ -227,6 +227,7 @@ class StreamToLogger(IO):
         self.log_level = log_level
         self.buffer_list = []
 
+    @property
     def name(self):
         return self._name
 
