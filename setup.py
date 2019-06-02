@@ -38,5 +38,6 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    install_requires=['py-cgroups', 'Pyro4', 'zope', 'simpleconfig'],
+    install_requires=['pycgroups', 'Pyro4', 'zope', 'simpleconfig'],
+    dependency_links=['https://bitbucket.org/funaro/py-cgroups'],
 )
