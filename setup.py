@@ -27,7 +27,7 @@ setup(
     author_email="liran.funaro+rdaemon@gmail.com",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url="https://bitbucket.org/funaro/rdaemon",
+    url="https://github.com/liran-funaro/remote-daemon",
     keywords='remote daemon',
     license='GPL',
     classifiers=[
@@ -39,5 +39,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     install_requires=['pycgroups', 'Pyro4', 'zope', 'simpleconfig'],
-    dependency_links=['https://bitbucket.org/funaro/py-cgroups'],
+    dependency_links=['https://github.com/liran-funaro/py-cgroups'],
 )
